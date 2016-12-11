@@ -714,7 +714,7 @@ Particle.prototype.bounce_off = function(b) {
         a.add_velocity(scale_vector(b.normal(b, a), rav-av));
         this.bounced = true;
         if (!b.bounced) {
-            var pitch = 0 | ((av - bv) * game_speed / 5);
+            var pitch = 0 | ((av - bv) * game_speed / 4);
             if (pitch >= sounds.hits.length) {
                 pitch = sounds.hits.length-1;
             }
