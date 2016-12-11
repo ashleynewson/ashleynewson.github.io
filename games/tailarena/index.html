@@ -1,0 +1,72 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @font-face {
+    font-family: PressStart2P;
+    src: local("PressStart2P"),
+    local("PressStart2P"),
+    url(PressStart2P.ttf);
+  }
+  body {
+    font-family: PressStart2P;
+    margin: 0;
+    padding: 0;
+  }
+  #announcement {
+      margin: 0;
+      padding: 0;
+      position: absolute;
+      text-align: center;
+      top: 0;
+      color: #fff;
+  }
+  #other {
+      margin: 10px;
+      padding: 10px;
+  }
+  #help {
+      position: absolute;
+      top: 0;
+      left: 0;
+  }
+  canvas {
+    image-rendering: optimizeSpeed;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+    image-rendering: pixelated;
+    -ms-interpolation-mode: nearest-neighbor;
+  }
+</style>
+<title>Tail Arena</title>
+</head>
+<body onresize="initialise_canvas()" onload="after_body_loaded()">
+  <div id="game-area">
+    <canvas id="display" width="100" height="100" onselectstart="return false;"></canvas>
+    <img id="help" src="help/help.png" onselectstart="return false;" onclick="start();">
+    <br>
+    <div id="touch_area" style="display: none">
+      <img id="touch_motion" width="100" height="100" src="directions.png" onselectstart="return false;">
+      <img id="touch_action" width="100" height="100" style="float: right" src="action.png" onselectstart="return false;">
+    </div>
+  </div>
+  <div id="other">
+    <h1>Tail Arena</h1>
+    <h3 id="version">Version ?</h3>
+    <script src="game.js" type="text/javascript"></script>
+    <noscript><p>Whooah! Hey there pal, you need to enable JavaScript to use this thing. I'm not leaving till you do.</p></noscript>
+    <p><a href="javascript:start();">Start</a> <a href="javascript:stop();">Stop</a> <a href="javascript:reset();">Reset</a></p>
+    <p>
+      Sound quality may vary across browsers and systems.
+    </p>
+    <form action="javascript:null;">
+      Enable Sound <input id="sound_enabler" name="sound" type="checkbox" value="Enable Sound" onchange="javascript:check_sound_enabled();" checked> <br>
+      Enable Touch <input id="touch_enabler" name="touch" type="checkbox" value="Enable Touch Controls" onchange="javascript:check_touch_enabled();"> <br>
+    </form>
+    <p id="message">Not started.</p>
+    <p>Copyright Ashley Newson 2016</p>
+  </div>
+</body>
+</html>
