@@ -581,16 +581,26 @@ function box_paste(x1, y1, additive) {
         for (var y = y1; y <= y2; y++) {
             for (var x = x1; x <= x2; x++) {
                 if (x < width - 1 && y < height - 1) {
-                    if (additive) {
-                        if (keys_down[key_bindings.subtract]) {
-                            if (clipboard_cells[y - y1][x - x1] != 0) {
-                                set_cell(x, y, false, mode_wire_force.checked);
+                    if (readonly[y][x] === 0 || mode_wire_force.checked) {
+                        if (additive) {
+                            if (keys_down[key_bindings.subtract]) {
+                                if (clipboard_cells[y - y1][x - x1] != 0) {
+                                    new_cells[y][x] = cells[y][x] = 0;
+                                }
+                            } else {
+                                new_cells[y][x] = cells[y][x] = cells[y][x] | clipboard_cells[y - y1][x - x1];
                             }
                         } else {
-                            set_cell(x, y, cells[y][x] === 1 || clipboard_cells[y - y1][x - x1], mode_wire_force.checked);
+                            new_cells[y][x] = cells[y][x] = clipboard_cells[y - y1][x - x1];
                         }
-                    } else {
-                        set_cell(x, y, clipboard_cells[y - y1][x - x1], mode_wire_force.checked);
+                    } else if (readonly[y][x] === 1 && mode_wire_force.checked && clipboard_cells[y - y1][x - x1] === 0) {
+                        var i;
+                        for (i = 0; i < goals.length; i++) {
+                            if (goals[i].x === x && goals[i].y === y) {
+                                goals.splice(i, 1);
+                                break;
+                            }
+                        }
                     }
                 }
             }
