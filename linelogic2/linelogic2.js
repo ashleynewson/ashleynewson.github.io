@@ -1,7 +1,7 @@
 // LineLogic 2
-// Copyright Ashley Newson 2016
+// Copyright Ashley Newson 2017
 
-var version_string = "0.8"
+var version_string = "0.9"
 
 var canvas;
 var ctx;
@@ -31,6 +31,8 @@ var new_update_y;
 var speed = 0;
 var slow_count = 0;
 
+var input_speed;
+
 var mode_wire;
 var mode_protect;
 var mode_wire_force;
@@ -49,18 +51,32 @@ var mouse = {x:0, y:0};
 var mouse_start = {x:0, y:0};
 var keys_down = {};
 
+function ascii (a) { return a.charCodeAt(0); }
+
 var key_bindings = {
-    subtract : 68,
-    copy : 67,
-    cut : 88,
-    line : 70,
-    erase : 69,
-    paste : 86,
-    additive_paste : 66,
-    flip_v : 73,
-    flip_h : 75,
-    rotate_ccw : 74,
-    rotate_cw : 76,
+    guard : ascii("G"), // used to guard dangerous actions.
+
+    reset : ascii("R"),
+
+    pause : ascii(" "),
+    slower : 219,
+    faster : 221,
+
+    mode_wire : ascii("1"),
+    mode_protect : ascii("2"),
+    mode_wire_force : ascii("3"),
+    mode_goal : ascii("4"),
+
+    subtract : ascii("D"),
+    copy : ascii("C"),
+    cut : ascii("X"),
+    erase : ascii("E"),
+    paste : ascii("V"),
+    additive_paste : ascii("B"),
+    flip_v : ascii("I"),
+    flip_h : ascii("K"),
+    rotate_ccw : ascii("J"),
+    rotate_cw : ascii("L"),
 };
 
 
@@ -68,7 +84,6 @@ requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnim
 
 
 function render() {
-    // full_render = true;
     if (full_render) {
         // Clear screen
         ctx.fillStyle = "black";
@@ -270,18 +285,6 @@ function update() {
                 y = update_y[i];
                 update_guard[y][x] = 0;
                 update_cell(x, y);
-                // queue_update(x, y);
-                // if (cells[y][x] != new_cells[y][x]) {
-                //     queue_update_plus(x, y);
-                //     queue_update_plus(x-1, y);
-                //     queue_update_plus(x+1, y);
-                //     queue_update_plus(x, y-1);
-                //     queue_update_plus(x, y+1);
-                // }
-                // if (cells[y-1][x] != new_cells[y-1][x]) {queue_update(x, y-1);}
-                // if (cells[y+1][x] != new_cells[y+1][x]) {queue_update(x, y+1);}
-                // if (cells[y][x-1] != new_cells[y][x-1]) {queue_update(x-1, y);}
-                // if (cells[y][x+1] != new_cells[y][x+1]) {queue_update(x+1, y);}
             }
             for (i = 0; i < update_count; i++) {
                 x = update_x[i];
@@ -459,7 +462,7 @@ function line_cell(x1, y1, x2, y2, set_to, force) {
 }
 
 function set_cell(x, y, set_to, force) {
-    if (readonly[y][x] === 0) {
+    if (readonly[y][x] === 0 || force) {
         if (set_to) {
             cells[y][x] = 1;
             new_cells[y][x] = 1;
@@ -472,33 +475,18 @@ function set_cell(x, y, set_to, force) {
             cells[y][x+1] = new_cells[y][x+1] & ~8;
             cells[y+1][x] = new_cells[y+1][x] & ~16;
         }
-        full_render = true;
-        render();
-        full_update = true;
-    } else if (force) {
-        if (set_to === 0) {
-            cells[y][x] = 1;
-            new_cells[y][x] = 1;
-        } else {
-            cells[y][x] = 0;
-            new_cells[y][x] = 0;
-            var i;
-            for (i = 0; i < goals.length; i++) {
-                if (goals[i].x === x && goals[i].y === y) {
-                    goals.splice(i, 1);
-                    break;
-                }
-            }
-
-            cells[y][x-1] = new_cells[y][x-1] & ~2;
-            cells[y-1][x] = new_cells[y-1][x] & ~4;
-            cells[y][x+1] = new_cells[y][x+1] & ~8;
-            cells[y+1][x] = new_cells[y+1][x] & ~16;
-        }
-        full_render = true;
-        render();
-        full_update = true;
     }
+    if (readonly[y][x] === 1 && force && set_to === false) {
+        var i;
+        for (i = 0; i < goals.length; i++) {
+            if (goals[i].x === x && goals[i].y === y) {
+                goals.splice(i, 1);
+                break;
+            }
+        }
+    }
+    full_render = true;
+    full_update = true;
 }
 
 function toggle_protect(x, y) {
@@ -516,7 +504,6 @@ function toggle_protect(x, y) {
             }
         }
         full_render = true;
-        render();
     }
 }
 
@@ -544,7 +531,6 @@ function box_protect(x1, y1, x2, y2, set_to) {
             }
         }
         full_render = true;
-        render();
     }
 }
 
@@ -566,7 +552,6 @@ function box_copy(x1, y1, x2, y2) {
             }
         }
         full_render = true;
-        render();
     }
 }
 
@@ -585,7 +570,7 @@ function box_erase(x1, y1, x2, y2) {
             }
         }
         full_render = true;
-        render();
+        full_update = true;
     }
 }
 
@@ -596,24 +581,22 @@ function box_paste(x1, y1, additive) {
         for (var y = y1; y <= y2; y++) {
             for (var x = x1; x <= x2; x++) {
                 if (x < width - 1 && y < height - 1) {
-                    if (readonly[y - y1][x - x1] === 0) {
-                        if (additive) {
-                            if (keys_down[key_bindings.subtract]) {
-                                if (clipboard_cells[y - y1][x - x1] != 0) {
-                                    cells[y][x] = 0;
-                                }
-                            } else {
-                                cells[y][x] |= clipboard_cells[y - y1][x - x1];
+                    if (additive) {
+                        if (keys_down[key_bindings.subtract]) {
+                            if (clipboard_cells[y - y1][x - x1] != 0) {
+                                set_cell(x, y, false, mode_wire_force.checked);
                             }
                         } else {
-                            cells[y][x] = clipboard_cells[y - y1][x - x1];
+                            set_cell(x, y, cells[y][x] === 1 || clipboard_cells[y - y1][x - x1], mode_wire_force.checked);
                         }
+                    } else {
+                        set_cell(x, y, clipboard_cells[y - y1][x - x1], mode_wire_force.checked);
                     }
                 }
             }
         }
         full_render = true;
-        render();
+        full_update = true;
     }
 }
 
@@ -692,14 +675,6 @@ function toggle_goal(x, y) {
             goals.push({x: x, y: y});
         } else {
             // Remove
-            // readonly[y][x] = 0;
-            // cells[y][x] = 1;
-            // new_cells[y][x] = 1;
-
-            // cells[y][x-1] = new_cells[y][x-1] & ~2;
-            // cells[y-1][x] = new_cells[y-1][x] & ~4;
-            // cells[y][x+1] = new_cells[y][x+1] & ~8;
-            // cells[y+1][x] = new_cells[y+1][x] & ~16;
             goals.splice(i, 1);
         }
         full_render = true;
@@ -807,7 +782,6 @@ function set_size() {
     var old_width  = width;
     var old_height = height;
 
-    // TODO: parse int
     canvas.width = width = parseInt(input_width.value);
     canvas.height = height = parseInt(input_height.value);
     scale = parseInt(input_scale.value);
@@ -844,28 +818,74 @@ function set_size() {
 }
 
 function set_speed() {
-    var input_speed = document.getElementById('input_speed');
     speed = input_speed.value;
 }
 
 
 addEventListener("keydown", function (e) {
+    // These are exceptions to the anti-repeat guard.
+    if (e.keyCode === key_bindings.faster) {
+        input_speed.stepDown();
+        set_speed();
+    }
+    if (e.keyCode === key_bindings.slower) {
+        input_speed.stepUp();
+        set_speed();
+    }
+
     if (keys_down[e.keyCode]) {
         return;
     }
+
+    if (e.keyCode === key_bindings.mode_wire) {
+        mode_wire.checked = true;
+    }
+    if (e.keyCode === key_bindings.mode_protect) {
+        mode_protect.checked = true;
+    }
+    if (e.keyCode === key_bindings.mode_wire_force) {
+        mode_wire_force.checked = true;
+    }
+    if (e.keyCode === key_bindings.mode_goal) {
+        mode_goal.checked = true;
+    }
+
     keys_down[e.keyCode] = true;
+    if (e.keyCode === key_bindings.pause) {
+        if (running) {
+            stop();
+        } else {
+            start();
+        }
+        e.preventDefault();
+    }
+    if (keys_down[key_bindings.guard]) {
+        if (e.keyCode === key_bindings.reset) {
+            reset();
+            e.preventDefault();
+        }
+    }
     if (e.keyCode === key_bindings.flip_v) {
         clipboard_flip_v();
+        e.preventDefault();
     } else if (e.keyCode === key_bindings.flip_h) {
         clipboard_flip_h();
+        e.preventDefault();
     } else if (e.keyCode === key_bindings.rotate_cw) {
         clipboard_rotate_cw();
+        e.preventDefault();
     } else if (e.keyCode === key_bindings.rotate_ccw) {
         clipboard_rotate_ccw();
+        e.preventDefault();
     }
     if (e.keyCode === key_bindings.paste ||
         e.keyCode === key_bindings.additive_paste) {
         display_loop();
+        e.preventDefault();
+    }
+
+    if (full_render == true) {
+        render();
     }
 }, false);
 
@@ -874,6 +894,13 @@ addEventListener("keyup", function (e) {
     if (e.keyCode === key_bindings.paste ||
         e.keyCode === key_bindings.additive_paste) {
         render();
+        e.preventDefault();
+    }
+}, false);
+
+addEventListener("click", function (e) {
+    if (e.target == canvas && e.button === 0) {
+        e.preventDefault();
     }
 }, false);
 
@@ -882,6 +909,7 @@ addEventListener("mousedown", function (e) {
         var rect = canvas.getBoundingClientRect();
         mouse_start.x = parseInt((e.clientX - rect.left) / scale);
         mouse_start.y = parseInt((e.clientY - rect.top ) / scale);
+        e.preventDefault();
     }
 }, false);
 
@@ -890,6 +918,7 @@ addEventListener("mousemove", function (e) {
         var rect = canvas.getBoundingClientRect();
         mouse.x = parseInt((e.clientX - rect.left) / scale);
         mouse.y = parseInt((e.clientY - rect.top ) / scale);
+        e.preventDefault();
     }
 }, false);
 
@@ -925,9 +954,7 @@ addEventListener("mouseup", function (e) {
             } else {
                 var set_to = !keys_down[key_bindings.subtract]
                 if (mode_wire.checked) {
-                    if (keys_down[key_bindings.line]) {
-                        line_cell(mouse_start.x, mouse_start.y, mouse.x, mouse.y, set_to, false);
-                    }
+                    line_cell(mouse_start.x, mouse_start.y, mouse.x, mouse.y, set_to, false);
                 } else if (mode_protect.checked) {
                     box_protect(mouse_start.x, mouse_start.y, mouse.x, mouse.y, set_to);
                 } else if (mode_wire_force.checked) {
@@ -936,6 +963,11 @@ addEventListener("mouseup", function (e) {
                     toggle_goal(mouse.x, mouse.y);
                 }
             }
+        }
+        e.preventDefault();
+
+        if (full_render == true) {
+            render();
         }
     }
 }, false);
@@ -998,6 +1030,8 @@ document.getElementById('img-loader').onchange = function (e) {
 
 
 $(function () {
+    input_speed = document.getElementById('input_speed');
+
     mode_wire = document.getElementById("mode_wire");
     mode_protect = document.getElementById("mode_protect");
     mode_wire_force = document.getElementById("mode_wire_force");
