@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="jquery-1.11.3.js" type="text/javascript"></script>
+<style>
+canvas {
+  image-rendering: optimizeSpeed;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: optimize-contrast;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+</style>
+<title>LD43</title>
+</head>
+<body>
+    <div id="game-area"></div>
+    <p id="fps">???</p>
+<h1>LD43</h1>
+<h3 id="version">Version ?</h3>
+
+<!-- Here come the scripts! -->
+    <script src="core.js" type="text/javascript"></script>
+    <script src="noise.js" type="text/javascript"></script>
+    <script src="renderer.js" type="text/javascript"></script>
+    <script src="controls.js" type="text/javascript"></script>
+
+    <script src="View.js" type="text/javascript"></script>
+
+    <script src="Graphic.js" type="text/javascript"></script>
+    <script src="StencilledGraphic.js" type="text/javascript"></script>
+    <script src="VisualEffect.js" type="text/javascript"></script>
+
+    <script src="Sound.js" type="text/javascript"></script>
+    <script src="SoundEffect.js" type="text/javascript"></script>
+
+    <!-- <script src="Terrain.js" type="text/javascript"></script> -->
+    <script src="World.js" type="text/javascript"></script>
+
+    <script src="resources_list.js" type="text/javascript"></script>
+    <script src="resources.js" type="text/javascript"></script>
+
+    <script src="Entity.js" type="text/javascript"></script>
+    <script src="Human.js" type="text/javascript"></script>
+    <script src="Plant.js" type="text/javascript"></script>
+    <script src="Bush.js" type="text/javascript"></script>
+    <script src="Tree.js" type="text/javascript"></script>
+    <script src="Hovel.js" type="text/javascript"></script>
+
+    <script src="game.js" type="text/javascript"></script>
+<!-- There go the scripts! -->
+
+    <noscript><p>Whooah! Hey there pal, you need to enable JavaScript to use this thing. I'm not leaving till you do.</p></noscript>
+    <p><a href="javascript:start();">Start</a> <a href="javascript:stop();">Stop</a> <a href="javascript:reset();">Reset</a></p>
+    <p>Copyright George and Ashley Newson 2018</p>
+</body>
+</html>
