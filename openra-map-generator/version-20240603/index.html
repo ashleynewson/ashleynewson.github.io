@@ -1,0 +1,132 @@
+<html>
+  <head>
+    <title>RA map generator prototype</title>
+    <script type="module" src="main.js"></script>
+    <style>
+      canvas {
+          image-rendering: pixelated;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>OpenRA Random Map Generator Prototype</h2>
+    <p>Copyright Ashley Newson 2024.</p>
+    <p>This live demo is licensed under a <a href="gpl-3.0.txt">GPLv3 license</a> due to the inclusion of GPLv3 data files. See the <a href="https://github.com/ashleynewson/openra-map-generator">upstream project</a> for the MIT-licensed code. This demo's source may be downloaded <a href="https://ashleynewson.github.io/openra-map-generator/version-20240603.zip">here</a>.</p>
+    <hr>
+    <span id="status-line"></span><br>
+    <span style="visibility:hidden;" id="save-links">
+      <a id="saveBin" download="map.bin" href='#'>Save map.bin</a> |
+      <a id="saveYaml" download="map.yaml" href='#'>Save map.yaml</a> |
+      <a id="savePng" download="map.png" href='#'>Save map.png</a>
+    </span>
+    <br>
+    <span>
+      <a id="linkToMap" href='#'>Link to this map</a> |
+      <a id="saveSettings" download="map-settings.txt" href='#'>Save settings</a>
+    </span>
+    <br>
+    <input id="preview-size" type="range" min="0" value="512" max="1024" step="64" onchange="resizePreview()"><label>Preview size</label><br>
+    <div>
+      <canvas style="border: 8px solid;" id="canvas" width="64" height="64"></canvas>
+    </div>
+    <script>
+      function resizePreview() {
+          const canvas = document.getElementById("canvas");
+          const previewSize = document.getElementById("preview-size").value;
+          canvas.style.width = `${previewSize}px`;
+          canvas.style.height = `${previewSize}px`;
+      }
+      resizePreview();
+    </script>
+    <button onclick="beginGenerate()">Generate</button>
+    <button onclick="randomSeed();beginGenerate();">Generate with random seed</button>
+    <select id="preset" onchange="configurePreset(true);">
+      <option value="placeholder" selected>Generate random from preset</option>
+      <option value="---">--- Random</option>
+      <option value="random">Any</option>
+      <option value="random-land">Land-only</option>
+      <option value="random-land-water">Land & Water</option>
+      <option value="---">--- Land-only</option>
+      <option value="plains">Plains</option>
+      <option value="woodlands">Woodlands</option>
+      <option value="mountains">Mountains</option>
+      <option value="---">--- Land & Water</option>
+      <option value="continents">Continents</option>
+      <option value="wetlands">Wetlands</option>
+      <option value="puddles">Puddles</option>
+      <option value="oceanic">Oceanic</option>
+      <option value="large-islands">Large Islands</option>
+      <option value="lake-district">Lake District</option>
+      <option value="---">---</option>
+      <option value="basic">Basic/default</option>
+      <option value="wetlands-narrow">Narrow Wetlands</option>
+    </select>
+    <br>
+    <p>Primary settings:</p>
+    <input id="setting-seed"><label>Seed</label><br>
+    <input id="setting-size"><label>Size</label><br>
+    <input id="setting-rotations"><label>Rotations (minimum 1) (multiplies players and entities)</label><br>
+    <input id="setting-mirror"><label>Mirror direction (0 (none), 1, 2, 3, 4) (doubles players and entities)</label><br>
+    <input id="setting-players"><label>Players</label><br>
+    <input id="setting-custom-name"><label>Customise map name (regenerate to apply!)</label><br>
+    <p>Terrain settings:</p>
+    <input id="setting-wavelength-scale"><label>Terrain noise wavelength scale</label><br>
+    <input id="setting-water"><label>Water fraction</label><br>
+    <input id="setting-mountains"><label>Mountain fraction</label><br>
+    <input id="setting-forests"><label>Forest fraction</label><br>
+    <input id="setting-external-circular-bias"><label>Bias external circle altitude (-1, 0, 1)</label><br>
+    <input id="setting-terrain-smoothing"><label>Terrain smoothing</label><br>
+    <input id="setting-smoothing-threshold"><label>Iterative smoothing threshold</label><br>
+    <input id="setting-minimum-land-sea-thickness"><label>Minimum land/sea terrain thickness</label><br>
+    <input id="setting-minimum-mountain-thickness"><label>Minimum mountain terrain thickness</label><br>
+    <input id="setting-maximum-altitude"><label>Maximum mountain altitude</label><br>
+    <input id="setting-roughness-radius"><label>Terrain roughness sampling distance (terrain elevation variance sampling distance)</label><br>
+    <input id="setting-roughness"><label>Terrain roughness (cliffiness of mountain contours)</label><br>
+    <input id="setting-minimum-terrain-contour-spacing"><label>Minimum distance between terrain contours</label><br>
+    <input id="setting-minimum-cliff-length"><label>Minimum cliff length</label><br>
+    <input id="setting-forest-clumpiness"><label>Forest clumpiness</label><br>
+    <input id="setting-deny-walled-areas"><label>Deny access to regions which might not be accessible to all players </label><br>
+    <input id="setting-enforce-symmetry"><label>Improve symmetry of terrain passability with forest</label><br>
+    <p>Entity settings:</p>
+    <input id="setting-create-entities"><label>Create entities</label><br>
+    <input id="setting-starting-mines"><label>Starting mines</label><br>
+    <input id="setting-starting-ore"><label>Starting ore</label><br>
+    <input id="setting-central-reservation"><label>Central/Mirror player reservation</label><br>
+    <input id="setting-spawn-region-size"><label>Spawn region size</label><br>
+    <input id="setting-spawn-build-size"><label>Spawn build size</label><br>
+    <input id="setting-spawn-mines"><label>Number of spawn ore mines</label><br>
+    <input id="setting-spawn-ore"><label>Spawn ore size</label><br>
+    <input id="setting-maximum-expansions"><label>Maximum expansion count</label><br>
+    <input id="setting-minimum-expansion-size"><label>Minimum expansion size</label><br>
+    <input id="setting-maximum-expansion-size"><label>Maximum expansion size</label><br>
+    <input id="setting-expansion-inner"><label>Expansion inner size</label><br>
+    <input id="setting-expansion-border"><label>Expansion border size</label><br>
+    <input id="setting-expansion-mines"><label>Expansion extra mine weight</label><br>
+    <input id="setting-expansion-ore"><label>Expansion ore size</label><br>
+    <input id="setting-gem-upgrade"><label>Ore to gem upgrade probability</label><br>
+    <input id="setting-minimum-buildings"><label>Minimum neutral building count</label><br>
+    <input id="setting-maximum-buildings"><label>Maximum neutral building count</label><br>
+    <input id="setting-weight-fcom"><label>Building weight: Forward Command</label><br>
+    <input id="setting-weight-hosp"><label>Building weight: Hospital</label><br>
+    <input id="setting-weight-miss"><label>Building weight: Communications Center</label><br>
+    <input id="setting-weight-bio"><label>Building weight: Biological Lab</label><br>
+    <input id="setting-weight-oilb"><label>Building weight: Oil Derrick</label><br>
+
+    <button onclick="settingsToJson()">Dump settings to JSON</button>
+    <button onclick="jsonToSettings(false)">Load settings from JSON</button>
+    <button onclick="jsonToSettings(true)">Load and generate</button>
+    <br>
+    <textarea id="settings-json"></textarea>
+    <hr>
+    <h3>Debugging information</h3>
+    <input type="checkbox" id="debug-expander" onchange="showHideDebug()"><label>Show</label>
+    <div id="debug" style="display:none"></div>
+    <script>
+      function showHideDebug() {
+          const debug = document.getElementById("debug");
+          const debugExpander = document.getElementById("debug-expander");
+          debug.style.display = debugExpander.checked ? "block" : "none";
+      }
+    </script>
+  </body>
+</html>
